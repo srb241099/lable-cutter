@@ -32,3 +32,9 @@ Use 100% / Actual Size rather than Fit to Page.
 - A4 4-up output targets about 70 × 115 mm per label, matching the supplied Illustrator reference PDF closely.
 - Added extra lower-edge crop safety so the Product Details bottom border is preserved.
 - 4-up no longer expands labels to the full quarter-page cell.
+
+## v4 fixed-scale crop
+- A4 4-up no longer rescales each label according to its crop height.
+- All labels use a consistent scale derived from the original Meesho page width.
+- Labels with more content are allowed to be naturally larger/longer.
+- Crop ends directly above the TAX INVOICE heading so invoice text is excluded.

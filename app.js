@@ -90,22 +90,43 @@ function extractProduct(lines,text){
   return "Unknown product";
 }
 function detectBoundary(items,pageHeight,fallbackPct){
-  // PDF.js text transform[5] is measured upward from page bottom.
-  // Detect the first strong invoice marker in the lower/middle area.
-  const markers=/\b(TAX INVOICE|INVOICE NUMBER|INVOICE NO\.?|SELLER INVOICE|TAX INVOICE NO\.?)\b/i;
-  const candidates=items
-    .filter(it=>markers.test(it.str||"") && it.transform && Number.isFinite(it.transform[5]))
-    .map(it=>it.transform[5])
-    .filter(y=>y < pageHeight*0.72 && y > pageHeight*0.08);
+  // PDF.js text Y coordinates are measured upward from page bottom.
+  // We only use the actual invoice heading, not GSTIN/HSN/etc inside the shipping label.
+  const invoiceItems = items.filter(it=>{
+    const t=normalize(it.str||"").toUpperCase();
+    return (
+      t === "TAX INVOICE" ||
+      t.startsWith("TAX INVOICE ") ||
+      t.includes("TAX INVOICE ORIGINAL FOR RECIPIENT") ||
+      t === "SELLER INVOICE"
+    ) && it.transform && Number.isFinite(it.transform[5]);
+  });
 
-  if(candidates.length){
-    const invoiceTopY=Math.max(...candidates);
-    // Shipping labels usually occupy the upper ~38–60% of an A4 page.
-    // Clamp the detected cut so text inside the label cannot create a tiny crop.
-    // Keep a small safety strip below the shipping label so its lower border is never clipped.
-    return Math.min(pageHeight*0.62, Math.max(pageHeight*0.34, invoiceTopY - Math.max(6, pageHeight*0.008)));
+  // Invoice must be in the lower/middle region, otherwise ignore it.
+  const valid = invoiceItems
+    .filter(it=>{
+      const y=it.transform[5];
+      return y < pageHeight*0.68 && y > pageHeight*0.08;
+    })
+    .sort((a,b)=>b.transform[5]-a.transform[5]);
+
+  if(valid.length){
+    const it=valid[0];
+    const y=it.transform[5];
+    const textH=Math.max(7, Number(it.height)||0);
+
+    // Cut immediately ABOVE the TAX INVOICE text.
+    // 1.5pt safety keeps the shipping-label bottom rule but removes invoice wording.
+    const boundary = y + textH + 1.5;
+
+    return Math.min(
+      pageHeight*0.66,
+      Math.max(pageHeight*0.30, boundary)
+    );
   }
-  return pageHeight*(1-fallbackPct/100); // bottom coordinate where top label begins
+
+  // Fallback only when the actual invoice heading cannot be found.
+  return pageHeight*(1-fallbackPct/100);
 }
 async function readPdfFile(file,fileIndex,totalFiles){
   const bytes=new Uint8Array(await file.arrayBuffer());
@@ -194,8 +215,8 @@ async function makeOutputPdf(){
     }
 
     // Bounding box of label: from auto-detected invoice top to page top.
-    // Extra 2 mm-ish safety below the detected label edge.
-    let y0=Math.max(0,Math.min(height-10,meta.boundaryY - 5.7));
+    // Use the detected boundary directly: complete shipping label, no TAX INVOICE text.
+    let y0=Math.max(0,Math.min(height-10,meta.boundaryY));
     let cropH=height-y0;
     if(cropH < height*.25 || cropH > height*.72){
       const fallback=Number($("fallbackCrop").value)/100;
@@ -237,26 +258,37 @@ async function makeOutputPdf(){
     const cellX=col*cellW, cellY=A4H-(row+1)*cellH;
 
     if(per===4){
-      // Match the user's Illustrator reference:
-      // roughly 70 x 115 mm (about 200 x 327 pt) per rotated label on A4.
-      const targetW = 200;   // portrait width after rotation
-      const targetH = 327;   // portrait height after rotation
+      // IMPORTANT:
+      // Every Meesho label comes from the same A4 source width.
+      // Use ONE fixed scale based on that source width, so longer/taller labels
+      // are never shrunk just because their crop is bigger.
+      //
+      // After 90° rotation:
+      //   visible width  = cropH * s   (can vary with content)
+      //   visible height = sourceWidth * s (stays consistent)
+      //
+      // This matches the manual Illustrator workflow much better.
+      const targetLongSide = 327; // ~115 mm, based on user's manual PDF
+      const s = targetLongSide / width;
 
-      // Original crop is landscape; after +90° rotation:
-      // displayed width = cropH*s, displayed height = width*s.
-      const s = Math.min(targetW/cropH, targetH/width);
-      const rotatedW = cropH*s;
-      const rotatedH = width*s;
+      const rotatedW = cropH * s;   // variable according to label content
+      const rotatedH = width * s;   // same for all labels from same source format
 
-      // Center inside each A4 quarter, keeping Illustrator-like breathing room.
-      const x = cellX + (cellW-rotatedW)/2;
-      const y = cellY + (cellH-rotatedH)/2;
+      // Center each label inside its quarter.
+      // If a rare label is wider than its cell, use a tiny safety reduction only.
+      const maxCellW = cellW - 10;
+      const safeS = rotatedW > maxCellW ? s * (maxCellW / rotatedW) : s;
+
+      const finalW = cropH * safeS;
+      const finalH = width * safeS;
+      const x = cellX + (cellW-finalW)/2;
+      const y = cellY + (cellH-finalH)/2;
 
       sheet.drawPage(embedded,{
-        x:x+rotatedW,
+        x:x+finalW,
         y:y,
-        width:width*s,
-        height:cropH*s,
+        width:width*safeS,
+        height:cropH*safeS,
         rotate:PDFLib.degrees(90)
       });
     }else{
@@ -321,7 +353,18 @@ $("makePdfBtn").addEventListener("click",async()=>{
     const blob=new Blob([bytes],{type:"application/pdf"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");
-    a.href=url;a.download=`SRB-Labels-${new Date().toISOString().slice(0,10)}.pdf`;
+    a.href=url;
+    const now=new Date();
+    const dd=String(now.getDate()).padStart(2,"0");
+    const mm=String(now.getMonth()+1).padStart(2,"0");
+    const yy=String(now.getFullYear()).slice(-2);
+    let hh=now.getHours();
+    const min=String(now.getMinutes()).padStart(2,"0");
+    const ampm=hh>=12?"PM":"AM";
+    hh=hh%12||12;
+    const hh12=String(hh).padStart(2,"0");
+    // ":" is replaced by "-" because some operating systems do not allow ":" in filenames.
+    a.download=`${dd}-${mm}-${yy}-${hh12}-${min}${ampm}.pdf`;
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),5000);
     message(`Done ✓ <b>${state.pages.length} labels</b> processed. Your PDF download has started.`,"success");
