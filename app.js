@@ -102,7 +102,8 @@ function detectBoundary(items,pageHeight,fallbackPct){
     const invoiceTopY=Math.max(...candidates);
     // Shipping labels usually occupy the upper ~38–60% of an A4 page.
     // Clamp the detected cut so text inside the label cannot create a tiny crop.
-    return Math.min(pageHeight*0.62, Math.max(pageHeight*0.38, invoiceTopY + pageHeight*0.018));
+    // Keep a small safety strip below the shipping label so its lower border is never clipped.
+    return Math.min(pageHeight*0.62, Math.max(pageHeight*0.34, invoiceTopY - Math.max(6, pageHeight*0.008)));
   }
   return pageHeight*(1-fallbackPct/100); // bottom coordinate where top label begins
 }
@@ -193,7 +194,8 @@ async function makeOutputPdf(){
     }
 
     // Bounding box of label: from auto-detected invoice top to page top.
-    let y0=Math.max(0,Math.min(height-10,meta.boundaryY));
+    // Extra 2 mm-ish safety below the detected label edge.
+    let y0=Math.max(0,Math.min(height-10,meta.boundaryY - 5.7));
     let cropH=height-y0;
     if(cropH < height*.25 || cropH > height*.72){
       const fallback=Number($("fallbackCrop").value)/100;
@@ -235,14 +237,21 @@ async function makeOutputPdf(){
     const cellX=col*cellW, cellY=A4H-(row+1)*cellH;
 
     if(per===4){
-      // A Meesho cropped label is usually landscape. A quarter-A4 cell is portrait.
-      // Rotate 90° so the label fills the quarter instead of becoming a thin strip.
-      const s=Math.min(cellW/cropH, cellH/width);
-      const rotatedW=cropH*s;
-      const rotatedH=width*s;
-      const x=cellX+(cellW-rotatedW)/2;
-      const y=cellY+(cellH-rotatedH)/2;
-      // With a +90° rotation, the embedded page's origin must be shifted by its scaled height.
+      // Match the user's Illustrator reference:
+      // roughly 70 x 115 mm (about 200 x 327 pt) per rotated label on A4.
+      const targetW = 200;   // portrait width after rotation
+      const targetH = 327;   // portrait height after rotation
+
+      // Original crop is landscape; after +90° rotation:
+      // displayed width = cropH*s, displayed height = width*s.
+      const s = Math.min(targetW/cropH, targetH/width);
+      const rotatedW = cropH*s;
+      const rotatedH = width*s;
+
+      // Center inside each A4 quarter, keeping Illustrator-like breathing room.
+      const x = cellX + (cellW-rotatedW)/2;
+      const y = cellY + (cellH-rotatedH)/2;
+
       sheet.drawPage(embedded,{
         x:x+rotatedW,
         y:y,

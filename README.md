@@ -27,3 +27,8 @@ Use 100% / Actual Size rather than Fit to Page.
 ## v2 fix
 - A4 4-up labels auto-rotate 90° so each label fills its quarter page.
 - Invoice-boundary detection no longer uses broad GSTIN/HSN matches that can occur inside a shipping label.
+
+## v3 Illustrator-size fix
+- A4 4-up output targets about 70 × 115 mm per label, matching the supplied Illustrator reference PDF closely.
+- Added extra lower-edge crop safety so the Product Details bottom border is preserved.
+- 4-up no longer expands labels to the full quarter-page cell.
