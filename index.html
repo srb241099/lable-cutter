@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ff6b4a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="SRB Label Cutter">
+  <title>SRB Label Cutter</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brandmark">S</div>
+        <div class="brandcopy">
+          <h1>Label Cutter</h1>
+          <p>Meesho packing PDF tool</p>
+        </div>
+      </div>
+      <button id="installBtn" class="install-btn" hidden>Install</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <span class="eyebrow">SRB SELLER TOOL</span>
+        <h2>Cut labels. Sort orders.<br><em>Pack faster.</em></h2>
+        <p>Drop Meesho label PDFs. Invoice area is detected page-by-page, labels can be grouped, and a print-ready PDF is created inside your device.</p>
+      </section>
+
+      <section class="card upload-card">
+        <input id="pdfInput" type="file" accept="application/pdf,.pdf" multiple hidden>
+        <button id="dropzone" class="dropzone" type="button">
+          <span class="upload-icon">↥</span>
+          <strong>Choose Meesho label PDF</strong>
+          <small>Tap to choose · Multiple PDFs supported</small>
+          <span class="privacy-pill">PDF stays on this device</span>
+        </button>
+        <div id="engineStatus" class="engine-status">Loading PDF engine…</div>
+      </section>
+
+      <section id="batchSection" class="card batch-card hidden">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">BATCH</span>
+            <h3>What is in this batch</h3>
+          </div>
+          <button id="addMoreBtn" class="text-btn" type="button">+ Add PDFs</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><b id="ordersCount">0</b><span>Orders</span></div>
+          <div class="stat"><b id="productsCount">0</b><span>Products</span></div>
+          <div class="stat"><b id="couriersCount">0</b><span>Couriers</span></div>
+          <div class="stat"><b id="filesCount">0</b><span>Files</span></div>
+        </div>
+
+        <div class="reading-wrap">
+          <div class="reading-row"><span id="readingText">Ready</span><span id="readingPct">100%</span></div>
+          <div class="progress"><i id="progressBar"></i></div>
+        </div>
+
+        <div class="packing-block">
+          <div class="section-head compact">
+            <div>
+              <span class="section-kicker">PACKING ORDER</span>
+              <h3>Before vs after sorting</h3>
+            </div>
+          </div>
+
+          <div class="strip-label"><span>As Meesho gave it</span><b id="beforeSwitches">0 switches</b></div>
+          <div id="beforeStrip" class="order-strip"></div>
+
+          <div class="strip-label second"><span>After sorting</span><b id="afterSwitches">0 switches</b></div>
+          <div id="afterStrip" class="order-strip"></div>
+        </div>
+      </section>
+
+      <section id="settingsSection" class="card hidden">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">SETTINGS</span>
+            <h3>Build your print PDF</h3>
+          </div>
+        </div>
+
+        <div class="control">
+          <label>Group labels by</label>
+          <div class="segmented" id="sortGroup">
+            <button class="active" data-sort="product" type="button">Product</button>
+            <button data-sort="courier" type="button">Courier</button>
+            <button data-sort="payment" type="button">COD / Prepaid</button>
+            <button data-sort="original" type="button">Original</button>
+          </div>
+          <p id="sortHint" class="hint">Biggest product run first — useful while picking and packing.</p>
+        </div>
+
+        <div class="control">
+          <label>Print on</label>
+          <div class="print-grid" id="printGroup">
+            <button data-print="thermal" type="button">
+              <span class="print-icon thermal">▯</span>
+              <b>4 × 6 inch</b>
+              <small>Thermal roll</small>
+            </button>
+            <button class="active" data-print="a4-2" type="button">
+              <span class="print-icon">▥</span>
+              <b>A4 · 2 labels</b>
+              <small>Safe default</small>
+            </button>
+            <button data-print="a4-4" type="button">
+              <span class="print-icon">▦</span>
+              <b>A4 · 4 labels</b>
+              <small>Save most paper</small>
+            </button>
+            <button data-print="crop" type="button">
+              <span class="print-icon">⌗</span>
+              <b>Crop only</b>
+              <small>One label / page</small>
+            </button>
+          </div>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <b>Keep the tax invoice</b>
+            <span>Leaves the full original A4 page. Sorting still works.</span>
+          </div>
+          <label class="switch">
+            <input id="keepInvoice" type="checkbox">
+            <i></i>
+          </label>
+        </div>
+
+        <details class="advanced">
+          <summary>Crop detection controls</summary>
+          <div class="advanced-body">
+            <label class="range-label">
+              <span>Fallback crop height <b id="fallbackVal">50%</b></span>
+              <input id="fallbackCrop" type="range" min="38" max="70" value="50">
+            </label>
+            <p>Used only if invoice keywords cannot be detected on a page. Automatic detection remains the default.</p>
+          </div>
+        </details>
+
+        <div class="action-row">
+          <button id="makePdfBtn" class="primary-btn" type="button">Make my PDF</button>
+          <button id="resetBtn" class="secondary-btn" type="button">Start over</button>
+        </div>
+
+        <div id="message" class="message">
+          Print at <b>100% / Actual Size</b>. Avoid “Fit to Page” so barcode width is not rescaled.
+        </div>
+      </section>
+
+      <section class="privacy card">
+        <div class="shield">✓</div>
+        <div>
+          <b>Local processing</b>
+          <p>Customer names, phone numbers and addresses stay inside the browser tab. No PDF upload endpoint is used.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer>SRB Label Cutter · Built for phone & desktop</footer>
+  </div>
+
+  <!-- First online load fetches these libraries; the service worker caches them for later offline use. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs" type="module" id="pdfjsModule"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
