@@ -69,3 +69,64 @@ footer{text-align:center;font-size:9px;color:#9c8e84;padding:18px 0 calc(12px + 
   .print-grid button{min-height:96px}.action-row{grid-template-columns:1fr}
   .primary-btn,.secondary-btn{height:50px}
 }
+
+.tool-tabs{
+  position:sticky;top:76px;z-index:24;display:grid;grid-template-columns:1fr 1fr;
+  gap:6px;padding:6px;margin:0 0 14px;background:rgba(255,247,239,.92);
+  backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:16px
+}
+.tool-tab{
+  height:46px;border:0;border-radius:12px;background:transparent;color:var(--muted);
+  display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;font-size:12px
+}
+.tool-tab span{font-size:16px}.tool-tab b{font-weight:900}
+.tool-tab.active{background:var(--ink);color:#fff;box-shadow:0 7px 18px rgba(29,38,48,.15)}
+.tool-screen{display:none}.tool-screen.active{display:block}
+.price-layout{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(330px,.97fr);gap:14px;align-items:start}
+.price-form,.price-result{margin-bottom:0}
+.price-result{position:sticky;top:142px}
+.price-fields{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.price-fields.two{margin-top:12px}
+.price-field{display:block}
+.price-field>span,.price-label{display:block;font-size:11px;font-weight:900;margin-bottom:7px}
+.price-field>span b{color:var(--accent)}
+.price-field input{
+  width:100%;height:47px;border:1px solid var(--line);background:#fffaf5;color:var(--ink);
+  border-radius:12px;padding:0 12px;font-size:16px;outline:none
+}
+.price-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,74,.09)}
+.price-field small{display:block;font-size:9px;color:var(--muted);line-height:1.45;margin:5px 2px 0}
+.price-section{border-top:1px solid var(--line);margin-top:19px;padding-top:18px}
+.price-section h3{font-size:18px;margin:4px 0 14px;letter-spacing:-.02em}
+.pc-segmented{grid-template-columns:1fr 1fr}
+.gst-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:8px}
+.gst-row button{height:39px;border:1px solid var(--line);background:#fffaf5;border-radius:11px;color:var(--muted);font-weight:900;cursor:pointer}
+.gst-row button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.price-switch{margin-top:14px;border-top:0;padding:11px 0 0}
+.result-top{text-align:center;padding:9px 4px 17px}
+.result-top p{font-size:12px;color:var(--muted);margin:8px 0 0}
+.result-top>strong{display:block;font-size:48px;letter-spacing:-.055em;line-height:1;color:var(--ink);margin:6px 0 8px}
+.result-top>small{display:block;font-size:10px;color:var(--muted);line-height:1.5}
+.return-callout{padding:13px;border-radius:14px;background:#fff1e8;border:1px solid #ffd7c7;margin-bottom:14px}
+.return-callout b{display:block;font-size:12px;color:var(--accent)}.return-callout span{display:block;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.5}
+.result-section{border-top:1px solid var(--line);padding-top:15px;margin-top:15px}
+.result-section h3{font-size:14px;margin:0 0 8px}
+.result-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px dashed #eee1d7}
+.result-row:last-child{border-bottom:0}
+.result-row span{font-size:10px;color:var(--muted)}.result-row b{font-size:11px}
+.profit-row b{color:var(--green)}
+.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:14px 0}
+.metric-grid>div{background:#fffaf5;border:1px solid var(--line);border-radius:13px;padding:10px}
+.metric-grid span,.metric-grid small{display:block;color:var(--muted);font-size:9px}
+.metric-grid b{display:block;font-size:18px;margin:3px 0}
+@media(max-width:760px){
+  .tool-tabs{top:66px;margin-left:-2px;margin-right:-2px}
+  .price-layout{grid-template-columns:1fr}.price-result{position:static}
+  .price-hero{padding-top:20px}.price-hero h2{font-size:38px}
+}
+@media(max-width:430px){
+  .price-fields{grid-template-columns:1fr}
+  .gst-row{grid-template-columns:repeat(5,1fr);gap:4px}
+  .gst-row button{padding:0 4px;font-size:10px}
+  .metric-grid{grid-template-columns:1fr 1fr 1fr}
+}

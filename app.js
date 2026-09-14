@@ -400,3 +400,152 @@ window.addEventListener("appinstalled",()=>$("installBtn").hidden=true);
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.warn));
 }
+
+
+// ---------------- TOOL TABS ----------------
+function activateToolScreen(id){
+  document.querySelectorAll(".tool-screen").forEach(x=>x.classList.toggle("active",x.id===id));
+  document.querySelectorAll(".tool-tab").forEach(x=>x.classList.toggle("active",x.dataset.tool===id));
+  try{ localStorage.setItem("srbActiveTool",id); }catch(e){}
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll(".tool-tab").forEach(btn=>btn.addEventListener("click",()=>activateToolScreen(btn.dataset.tool)));
+try{
+  const saved=localStorage.getItem("srbActiveTool");
+  if(["labelTool","priceTool"].includes(saved)) activateToolScreen(saved);
+}catch(e){}
+
+// ---------------- MEESHO PRICE CALCULATOR ----------------
+let pcMode="pct";
+let pcGstRate=5;
+const pcMoney=n=>new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:2}).format(Number(n)||0);
+const pcNum=id=>Math.max(0,parseFloat($(id)?.value)||0);
+
+function pcTargetProfit(){
+  const cost=pcNum("pcCost"), t=pcNum("pcTarget");
+  return pcMode==="pct" ? cost*t/100 : t;
+}
+
+function pcParts(price,includeReturns=true){
+  const cost=pcNum("pcCost");
+  const pack=pcNum("pcPack");
+  const ads=pcNum("pcAds");
+  const other=pcNum("pcOther");
+  const shipping=pcNum("pcShipping");
+  const commissionRate=pcNum("pcCommission")/100;
+  const returns=Math.min(.95,pcNum("pcReturns")/100);
+  const rto=Math.min(.95,pcNum("pcRto")/100);
+  const failure=Math.min(.95,returns+rto);
+  const success=1-failure;
+  const returnFreight=pcNum("pcReturnFreight");
+  const unsellable=pcNum("pcUnsellable")/100;
+  const isGst=$("pcGstRegistered")?.checked;
+
+  const commission=price*commissionRate;
+  const feeGst=(commission+shipping)*.18;
+  const settlement=price-shipping-commission-feeGst;
+
+  // Supplier cost is treated as GST-inclusive for this planning estimator.
+  const productInputGst=pcGstRate>0 ? cost*pcGstRate/(100+pcGstRate) : 0;
+  const inputCredit=isGst ? productInputGst+feeGst : 0;
+
+  const deliveredProfit=settlement-cost-pack-ads-other+inputCredit;
+
+  // Failed order: no sales revenue, reverse freight paid; some stock becomes unsellable.
+  const failedLoss=pack+ads+other+returnFreight+(cost*unsellable);
+  const avgProfit=includeReturns
+    ? success*deliveredProfit-failure*failedLoss
+    : deliveredProfit;
+
+  const outputGst=pcGstRate>0 ? price*pcGstRate/(100+pcGstRate) : 0;
+  const netGst=isGst ? outputGst-inputCredit : outputGst;
+
+  return {
+    cost,pack,ads,other,shipping,commission,feeGst,settlement,
+    productInputGst,inputCredit,deliveredProfit,failedLoss,avgProfit,
+    outputGst,netGst,failure,success
+  };
+}
+
+function pcSolve(includeReturns=true,targetOverride=null){
+  const target=targetOverride===null?pcTargetProfit():targetOverride;
+  let lo=0,hi=1000;
+  // expand upper bound until target is reachable
+  while(pcParts(hi,includeReturns).avgProfit<target && hi<100000) hi*=2;
+  for(let i=0;i<90;i++){
+    const mid=(lo+hi)/2;
+    if(pcParts(mid,includeReturns).avgProfit<target) lo=mid;
+    else hi=mid;
+  }
+  return hi;
+}
+
+function pcCalc(){
+  if(!$("pcCost")) return;
+
+  const listPrice=pcSolve(true);
+  const ignoreReturns=pcSolve(false);
+  const floor=pcSolve(true,0);
+  const c=pcParts(listPrice,true);
+
+  const extra=pcNum("pcPack")+pcNum("pcAds")+pcNum("pcOther");
+  const returnBuffer=Math.max(0,listPrice-ignoreReturns);
+  const taxFees=c.commission+c.feeGst;
+  const margin=listPrice?c.avgProfit/listPrice*100:0;
+  const markup=c.cost?c.avgProfit/c.cost*100:0;
+  const invested=c.cost+extra;
+  const roi=invested?c.avgProfit/invested*100:0;
+
+  $("pcListPrice").textContent=pcMoney(Math.ceil(listPrice));
+  $("pcFloorLine").textContent=`Below ${pcMoney(Math.ceil(floor))} you are losing money on average.`;
+  $("pcReturnAdd").textContent=`Returns add ${pcMoney(returnBuffer)} to the price`;
+  $("pcIgnoreReturn").textContent=`Ignore them and you would list at ${pcMoney(ignoreReturns)}.`;
+
+  $("pcRProduct").textContent=pcMoney(c.cost);
+  $("pcRExtra").textContent=pcMoney(extra);
+  $("pcRShipping").textContent=pcMoney(c.shipping);
+  $("pcRReturns").textContent=pcMoney(returnBuffer);
+  $("pcRTax").textContent=pcMoney(taxFees);
+  $("pcRProfit").textContent=pcMoney(c.avgProfit);
+
+  $("pcMargin").textContent=margin.toFixed(1)+"%";
+  $("pcMarkup").textContent=markup.toFixed(1)+"%";
+  $("pcRoi").textContent=roi.toFixed(1)+"%";
+
+  $("pcOutputGst").textContent=pcMoney(c.outputGst);
+  $("pcInputGst").textContent=(c.inputCredit>0?"−":"")+pcMoney(c.inputCredit);
+  $("pcNetGst").textContent=pcMoney(c.netGst);
+
+  $("pcSettlement").textContent=pcMoney(c.settlement);
+  $("pcDeliveredProfit").textContent=pcMoney(c.deliveredProfit);
+  $("pcFailedLoss").textContent="−"+pcMoney(c.failedLoss);
+  $("pcAvgProfit").textContent=pcMoney(c.avgProfit);
+}
+
+["pcCost","pcPack","pcAds","pcOther","pcTarget","pcShipping","pcCommission","pcReturns","pcRto","pcReturnFreight","pcUnsellable","pcGstRegistered"]
+.forEach(id=>{
+  $(id)?.addEventListener("input",pcCalc);
+  $(id)?.addEventListener("change",pcCalc);
+});
+
+$("pcPctMode")?.addEventListener("click",()=>{
+  pcMode="pct";
+  $("pcPctMode").classList.add("active");
+  $("pcFixedMode").classList.remove("active");
+  $("pcTargetLabel").innerHTML='Profit on cost <b>%</b>';
+  pcCalc();
+});
+$("pcFixedMode")?.addEventListener("click",()=>{
+  pcMode="fixed";
+  $("pcFixedMode").classList.add("active");
+  $("pcPctMode").classList.remove("active");
+  $("pcTargetLabel").innerHTML='Fixed target profit <b>₹</b>';
+  pcCalc();
+});
+document.querySelectorAll("#pcGstGroup button").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll("#pcGstGroup button").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+  pcGstRate=parseFloat(btn.dataset.gst)||0;
+  pcCalc();
+}));
+pcCalc();

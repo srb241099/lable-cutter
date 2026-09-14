@@ -26,7 +26,18 @@
       <button id="installBtn" class="install-btn" hidden>Install</button>
     </header>
 
+    <nav class="tool-tabs" aria-label="Tools">
+      <button class="tool-tab active" data-tool="labelTool" type="button">
+        <span>✂</span><b>Label Cutter</b>
+      </button>
+      <button class="tool-tab" data-tool="priceTool" type="button">
+        <span>₹</span><b>Price Calculator</b>
+      </button>
+    </nav>
+
+
     <main>
+      <section id="labelTool" class="tool-screen active">
       <section class="hero">
         <span class="eyebrow">SRB SELLER TOOL</span>
         <h2>Cut labels. Sort orders.<br><em>Pack faster.</em></h2>
@@ -165,6 +176,171 @@
           <p>Customer names, phone numbers and addresses stay inside the browser tab. No PDF upload endpoint is used.</p>
         </div>
       </section>
+      </section>
+
+
+      <section id="priceTool" class="tool-screen">
+        <section class="hero price-hero">
+          <span class="eyebrow">BACKWARD PRICING</span>
+          <h2>Know your price<br><em>before you list.</em></h2>
+          <p>Start with your real costs and the profit you want. This works backwards to estimate the Meesho listing price that survives shipping, returns, GST and marketplace deductions.</p>
+        </section>
+
+        <section class="price-layout">
+          <div class="card price-form">
+            <div class="section-head">
+              <div>
+                <span class="section-kicker">YOUR COSTS</span>
+                <h3>What it costs you</h3>
+              </div>
+            </div>
+
+            <div class="price-fields">
+              <label class="price-field">
+                <span>Product cost <b>₹</b></span>
+                <input id="pcCost" type="number" min="0" step="0.01" value="150">
+                <small>What you pay your supplier</small>
+              </label>
+              <label class="price-field">
+                <span>Packaging <b>₹</b></span>
+                <input id="pcPack" type="number" min="0" step="0.01" value="8">
+                <small>Bag, tape, filler, label</small>
+              </label>
+              <label class="price-field">
+                <span>Ads per order <b>₹</b></span>
+                <input id="pcAds" type="number" min="0" step="0.01" value="0">
+              </label>
+              <label class="price-field">
+                <span>Anything else <b>₹</b></span>
+                <input id="pcOther" type="number" min="0" step="0.01" value="0">
+                <small>Labour, storage, per order</small>
+              </label>
+            </div>
+
+            <div class="price-section">
+              <span class="section-kicker">TARGET</span>
+              <h3>What you want to make</h3>
+
+              <label class="price-label">Target profit</label>
+              <div class="segmented pc-segmented">
+                <button id="pcPctMode" class="active" type="button">As a % of cost</button>
+                <button id="pcFixedMode" type="button">A fixed ₹ amount</button>
+              </div>
+
+              <div class="price-fields two">
+                <label class="price-field">
+                  <span id="pcTargetLabel">Profit on cost <b>%</b></span>
+                  <input id="pcTarget" type="number" min="0" step="0.01" value="20">
+                  <small>Averaged across every order you ship</small>
+                </label>
+                <label class="price-field">
+                  <span>Shipping Meesho charges <b>₹</b></span>
+                  <input id="pcShipping" type="number" min="0" step="0.01" value="65">
+                </label>
+                <label class="price-field">
+                  <span>Commission <b>%</b></span>
+                  <input id="pcCommission" type="number" min="0" step="0.01" value="0">
+                  <small>Zero on many categories</small>
+                </label>
+              </div>
+
+              <label class="price-label">GST rate</label>
+              <div class="gst-row" id="pcGstGroup">
+                <button data-gst="0" type="button">0%</button>
+                <button data-gst="3" type="button">3%</button>
+                <button data-gst="5" class="active" type="button">5%</button>
+                <button data-gst="12" type="button">12%</button>
+                <button data-gst="18" type="button">18%</button>
+              </div>
+
+              <div class="switch-row price-switch">
+                <div>
+                  <b>I am GST registered</b>
+                  <span>Claims input tax credit (ITC) on product & shipping GST</span>
+                </div>
+                <label class="switch">
+                  <input id="pcGstRegistered" type="checkbox">
+                  <i></i>
+                </label>
+              </div>
+            </div>
+
+            <div class="price-section">
+              <span class="section-kicker">RETURNS</span>
+              <h3>What comes back</h3>
+              <div class="price-fields two">
+                <label class="price-field">
+                  <span>Customer returns <b>%</b></span>
+                  <input id="pcReturns" type="number" min="0" max="95" step="0.01" value="15">
+                </label>
+                <label class="price-field">
+                  <span>RTO <b>%</b></span>
+                  <input id="pcRto" type="number" min="0" max="95" step="0.01" value="3">
+                  <small>Never reached the buyer</small>
+                </label>
+                <label class="price-field">
+                  <span>Return freight <b>₹</b></span>
+                  <input id="pcReturnFreight" type="number" min="0" step="0.01" value="153">
+                </label>
+                <label class="price-field">
+                  <span>Cannot be resold <b>%</b></span>
+                  <input id="pcUnsellable" type="number" min="0" max="100" step="0.01" value="20">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <aside class="card price-result">
+            <div class="result-top">
+              <span class="section-kicker">RECOMMENDED PRICE</span>
+              <p>List this at</p>
+              <strong id="pcListPrice">₹0</strong>
+              <small id="pcFloorLine">Below ₹0 you are losing money on average.</small>
+            </div>
+
+            <div class="return-callout">
+              <b id="pcReturnAdd">Returns add ₹0 to the price</b>
+              <span id="pcIgnoreReturn">Ignore them and you would list at ₹0.</span>
+            </div>
+
+            <div class="result-section">
+              <h3>Where every rupee goes</h3>
+              <div class="result-row"><span>Product cost</span><b id="pcRProduct">₹0</b></div>
+              <div class="result-row"><span>Packaging and other</span><b id="pcRExtra">₹0</b></div>
+              <div class="result-row"><span>Shipping</span><b id="pcRShipping">₹0</b></div>
+              <div class="result-row"><span>Cover for returns</span><b id="pcRReturns">₹0</b></div>
+              <div class="result-row"><span>GST, commission & taxes</span><b id="pcRTax">₹0</b></div>
+              <div class="result-row profit-row"><span>Your profit</span><b id="pcRProfit">₹0</b></div>
+            </div>
+
+            <div class="metric-grid">
+              <div><span>Margin</span><b id="pcMargin">0%</b><small>of buyer price</small></div>
+              <div><span>Markup</span><b id="pcMarkup">0%</b><small>on your cost</small></div>
+              <div><span>ROI</span><b id="pcRoi">0%</b><small>return on money spent</small></div>
+            </div>
+
+            <div class="result-section">
+              <h3>GST on one order</h3>
+              <div class="result-row"><span>GST inside your price</span><b id="pcOutputGst">₹0</b></div>
+              <div class="result-row"><span>Input credit you can claim</span><b id="pcInputGst">₹0</b></div>
+              <div class="result-row"><span>You actually pay</span><b id="pcNetGst">₹0</b></div>
+            </div>
+
+            <div class="result-section sanity">
+              <h3>Sanity check</h3>
+              <div class="result-row"><span>Delivered settlement</span><b id="pcSettlement">₹0</b></div>
+              <div class="result-row"><span>Delivered order must profit</span><b id="pcDeliveredProfit">₹0</b></div>
+              <div class="result-row"><span>One failed order costs</span><b id="pcFailedLoss">−₹0</b></div>
+              <div class="result-row profit-row"><span>Avg. every order shipped</span><b id="pcAvgProfit">₹0</b></div>
+            </div>
+
+            <div class="message">
+              Treat this as a planning estimate. Use the shipping, return and deduction numbers from your own seller panel for the best result.
+            </div>
+          </aside>
+        </section>
+      </section>
+
     </main>
 
     <footer>SRB Label Cutter · Built for phone & desktop</footer>

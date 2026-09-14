@@ -38,3 +38,13 @@ Use 100% / Actual Size rather than Fit to Page.
 - All labels use a consistent scale derived from the original Meesho page width.
 - Labels with more content are allowed to be naturally larger/longer.
 - Crop ends directly above the TAX INVOICE heading so invoice text is excluded.
+
+## v6 Price Calculator tab
+- Added a second PWA tab: Label Cutter / Price Calculator.
+- Backward pricing from target profit.
+- Product cost, packaging, ads, other costs.
+- Profit target as % of cost or fixed rupee amount.
+- Shipping, commission and GST slabs 0/3/5/12/18%.
+- GST registered / ITC toggle.
+- Returns, RTO, reverse freight and unsellable stock.
+- Recommended listing price, floor price, return buffer, margin, markup, ROI, GST and sanity-check breakdown.
