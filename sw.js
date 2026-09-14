@@ -1,4 +1,4 @@
-const CACHE="srb-label-cutter-v1";
+const CACHE="srb-label-cutter-v2";
 const CORE=["./","./index.html","./style.css","./app.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 self.addEventListener("install",e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));

@@ -92,7 +92,7 @@ function extractProduct(lines,text){
 function detectBoundary(items,pageHeight,fallbackPct){
   // PDF.js text transform[5] is measured upward from page bottom.
   // Detect the first strong invoice marker in the lower/middle area.
-  const markers=/\b(TAX INVOICE|INVOICE|GSTIN|TAXABLE VALUE|HSN|CGST|SGST|IGST|INVOICE NO|INVOICE NUMBER)\b/i;
+  const markers=/\b(TAX INVOICE|INVOICE NUMBER|INVOICE NO\.?|SELLER INVOICE|TAX INVOICE NO\.?)\b/i;
   const candidates=items
     .filter(it=>markers.test(it.str||"") && it.transform && Number.isFinite(it.transform[5]))
     .map(it=>it.transform[5])
@@ -100,8 +100,9 @@ function detectBoundary(items,pageHeight,fallbackPct){
 
   if(candidates.length){
     const invoiceTopY=Math.max(...candidates);
-    // Keep a small safety gap above invoice marker.
-    return Math.min(pageHeight*0.78, Math.max(pageHeight*0.30, invoiceTopY + pageHeight*0.025));
+    // Shipping labels usually occupy the upper ~38–60% of an A4 page.
+    // Clamp the detected cut so text inside the label cannot create a tiny crop.
+    return Math.min(pageHeight*0.62, Math.max(pageHeight*0.38, invoiceTopY + pageHeight*0.018));
   }
   return pageHeight*(1-fallbackPct/100); // bottom coordinate where top label begins
 }
@@ -232,9 +233,34 @@ async function makeOutputPdf(){
     const cellW=A4W/cols, cellH=A4H/rows;
     const col=per===4?slot%2:0, row=per===4?Math.floor(slot/2):slot;
     const cellX=col*cellW, cellY=A4H-(row+1)*cellH;
-    const s=Math.min(cellW/width,cellH/cropH);
-    const dw=width*s,dh=cropH*s;
-    sheet.drawPage(embedded,{x:cellX+(cellW-dw)/2,y:cellY+(cellH-dh)/2,width:dw,height:dh});
+
+    if(per===4){
+      // A Meesho cropped label is usually landscape. A quarter-A4 cell is portrait.
+      // Rotate 90° so the label fills the quarter instead of becoming a thin strip.
+      const s=Math.min(cellW/cropH, cellH/width);
+      const rotatedW=cropH*s;
+      const rotatedH=width*s;
+      const x=cellX+(cellW-rotatedW)/2;
+      const y=cellY+(cellH-rotatedH)/2;
+      // With a +90° rotation, the embedded page's origin must be shifted by its scaled height.
+      sheet.drawPage(embedded,{
+        x:x+rotatedW,
+        y:y,
+        width:width*s,
+        height:cropH*s,
+        rotate:PDFLib.degrees(90)
+      });
+    }else{
+      // 2-up cells are landscape, so keep the label unrotated.
+      const s=Math.min(cellW/width,cellH/cropH);
+      const dw=width*s,dh=cropH*s;
+      sheet.drawPage(embedded,{
+        x:cellX+(cellW-dw)/2,
+        y:cellY+(cellH-dh)/2,
+        width:dw,
+        height:dh
+      });
+    }
     slot++;
   }
   return out.save();

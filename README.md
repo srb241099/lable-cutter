@@ -22,3 +22,8 @@ The app shell is local. PDF.js and pdf-lib are loaded from public CDNs on the fi
 
 ## Print
 Use 100% / Actual Size rather than Fit to Page.
+
+
+## v2 fix
+- A4 4-up labels auto-rotate 90° so each label fills its quarter page.
+- Invoice-boundary detection no longer uses broad GSTIN/HSN matches that can occur inside a shipping label.
